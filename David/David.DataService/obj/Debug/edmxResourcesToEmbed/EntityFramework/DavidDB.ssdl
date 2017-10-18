@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Schema Namespace="DavidModel.Store" Provider="MySql.Data.MySqlClient" ProviderManifestToken="5.7" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+  <EntityType Name="admins">
+    <Key>
+      <PropertyRef Name="Id" />
+    </Key>
+    <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+    <Property Name="UserName" Type="varchar" MaxLength="30" Nullable="false" />
+    <Property Name="PassWord" Type="varchar" MaxLength="50" Nullable="false" />
+    <Property Name="UserRole" Type="int" Nullable="false" />
+    <Property Name="CreateTime" Type="datetime" Precision="0" Nullable="false" />
+    <Property Name="LastLoginTime" Type="datetime" Precision="0" />
+    <Property Name="LastLoginIp" Type="varchar" MaxLength="50" />
+    <Property Name="LockDate" Type="datetime" Precision="0" />
+    <Property Name="IsDelete" Type="bit" Nullable="false" />
+  </EntityType>
+  <EntityContainer Name="DavidModelStoreContainer">
+    <EntitySet Name="admins" EntityType="Self.admins" Schema="david2018" store:Type="Tables" />
+  </EntityContainer>
+</Schema>
