@@ -9,6 +9,12 @@ namespace David.Framework.Web.Controller
 {
     public abstract class BaseApiController: ApiController
     {
-
+        /// <summary>
+        /// 判断是否登录
+        /// </summary>
+        public bool IsLogged
+        {
+            get { return DavidAuthentication.IsLogin(); }
+        }
     }
 }
