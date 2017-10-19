@@ -7,9 +7,13 @@ using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Web;
 using System.Web.Http;
+using David.Framework.Core.Cache;
+using David.Framework.Core.Security;
+using David.Framework.Web.Captcha;
 using David.Framework.Web.Controller;
 using David.Framework.Web.Security;
 using David.WebSite.Models.API;
+using David.WebSite.Models.API.Login;
 
 namespace David.WebSite.Controllers.API
 {
@@ -37,12 +41,9 @@ namespace David.WebSite.Controllers.API
         {
             Response<object> result = new Response<object>();
             bool showCaptcha = false;
-            if (loginRequest.account.IsNullOrEmpty())
+            if (string.IsNullOrEmpty(loginRequest.account))
             {
-                if (!loginRequest.isheadlogin)
-                {
-                    showCaptcha = OprateLoginCaptcha();
-                }
+                showCaptcha = OprateLoginCaptcha();
                 result.data = new
                 {
                     result = false,
@@ -53,100 +54,84 @@ namespace David.WebSite.Controllers.API
             }
 
             Regex passwordRegex = new Regex("[A-Za-z].*[0-9]|[0-9].*[A-Za-z]");
-            if (loginRequest.password.IsNullOrEmpty())
+            if (string.IsNullOrEmpty(loginRequest.password))
             {
-                if (!loginRequest.isheadlogin)
-                {
-                    showCaptcha = OprateLoginCaptcha();
-                }
+                showCaptcha = OprateLoginCaptcha();
                 result.data = new { result = false, errorcode = 2, showcaptcha = showCaptcha };
                 return result;
             }
-            if (loginRequest.password == Encryption.SHA256Encrypt(Encryption.MD5(loginRequest.password) + YOY.Const.YOYConst.PostPonySecretKey))
+            if (loginRequest.password == Encryption.SHA256Encrypt(Encryption.MD5(loginRequest.password)))
             {
-                if (!loginRequest.isheadlogin)
-                {
-                    showCaptcha = OprateLoginCaptcha();
-                }
+                showCaptcha = OprateLoginCaptcha();
                 result.data = new { result = false, errorcode = 2, showcaptcha = showCaptcha };
                 return result;
             }
-            if (!loginRequest.isheadlogin)
+            if (CaptchaDisplayHelper.IsDisplay(CaptchaDispalyType.Login) && !CaptchaImageHelper.Check(loginRequest.key, loginRequest.code))
             {
-                if (CaptchaDisplayHelper.IsDisplay(CaptchaDispalyType.Login) && !CaptchaImageHelper.Check(loginRequest.key, loginRequest.code))
-                {
-                    CaptchaDisplayHelper.SetDisplay(CaptchaDispalyType.Login);
-                    result.data = new { result = false, errorcode = 6, showcaptcha = true };
-                    return result;
-                }
-            }
-
-            ResultOfUserLoginInfoDtoUserLoginReturnEnum loginResult = UserDataService.UserLoginValidation(loginRequest.account, Encryption.SHA256Encrypt(Encryption.MD5(loginRequest.password) + YOY.Const.YOYConst.PostPonySecretKey));
-
-            if (loginResult == null)
-            {
-                if (!loginRequest.isheadlogin)
-                {
-                    showCaptcha = OprateLoginCaptcha();
-                }
-
-                result.data = new { result = false, errorcode = 7, showcaptcha = showCaptcha };
+                CaptchaDisplayHelper.SetDisplay(CaptchaDispalyType.Login);
+                result.data = new { result = false, errorcode = 6, showcaptcha = true };
                 return result;
             }
 
-            switch (loginResult.Status)
-            {
-                case UserLoginReturnEnum.Success:
-                    try
-                    {
-                        LogDataService.Log("Save The Login userInfo", LogType.SaveUserLoginInfo, $"userid={loginResult.Data.UserId};userIp={IPHelper.GetClicentIp()};userMacAddress={CommonTool.GetMacAddress()};");
-                    }
-                    catch (Exception ex)
-                    {
-                        LogDataService.Exception("Save The Login userInfo Exception", ex.Message, ex.Source, $"userid={loginResult.Data.UserId}");
-                    }
+            //ResultOfUserLoginInfoDtoUserLoginReturnEnum loginResult = UserDataService.UserLoginValidation(loginRequest.account, Encryption.SHA256Encrypt(Encryption.MD5(loginRequest.password)));
 
-                    break;
-                case UserLoginReturnEnum.Closed://账户关闭，客户登录失败
-                    result.data = new { result = false, errorcode = 8 };
-                    return result;
+            //if (loginResult == null)
+            //{
+            //    showCaptcha = OprateLoginCaptcha();
 
-                case UserLoginReturnEnum.NullOrEmpty:
-                    if (!loginRequest.isheadlogin)
-                    {
-                        showCaptcha = OprateLoginCaptcha();
+            //    result.data = new { result = false, errorcode = 7, showcaptcha = showCaptcha };
+            //    return result;
+            //}
 
-                    }
-                    result.data = new { result = false, errorcode = 9, showcaptcha = showCaptcha };
-                    return result;
+            //switch (loginResult.Status)
+            //{
+            //    case UserLoginReturnEnum.Success:
+            //        try
+            //        {
+            //            LogDataService.Log("Save The Login userInfo", LogType.SaveUserLoginInfo, $"userid={loginResult.Data.UserId};userIp={IPHelper.GetClicentIp()};userMacAddress={CommonTool.GetMacAddress()};");
+            //        }
+            //        catch (Exception ex)
+            //        {
+            //            LogDataService.Exception("Save The Login userInfo Exception", ex.Message, ex.Source, $"userid={loginResult.Data.UserId}");
+            //        }
 
-                case UserLoginReturnEnum.SystemError:
-                    if (!loginRequest.isheadlogin)
-                    {
-                        showCaptcha = OprateLoginCaptcha();
+            //        break;
+            //    case UserLoginReturnEnum.Closed://账户关闭，客户登录失败
+            //        result.data = new { result = false, errorcode = 8 };
+            //        return result;
 
-                    }
-                    result.data = new { result = false, errorcode = 10, showcaptcha = showCaptcha };
-                    return result;
+            //    case UserLoginReturnEnum.NullOrEmpty:
+            //        if (!loginRequest.isheadlogin)
+            //        {
+            //            showCaptcha = OprateLoginCaptcha();
 
-                case UserLoginReturnEnum.UnActivate:
-                    LoginSuccessOprate(loginResult.Data.UserId, loginResult.Data.UserName, loginRequest.key, loginRequest.remember, loginRequest.account);
-                    result.data = new { result = false, errorcode = 11, userid = loginResult.Data.UserId };
-                    return result;
-                case UserLoginReturnEnum.UnFound:
-                    if (!loginRequest.isheadlogin)
-                    {
-                        showCaptcha = OprateLoginCaptcha();
+            //        }
+            //        result.data = new { result = false, errorcode = 9, showcaptcha = showCaptcha };
+            //        return result;
 
-                    }
-                    result.data = new { result = false, errorcode = 12, showcaptcha = showCaptcha };
-                    return result;
-            }
+            //    case UserLoginReturnEnum.SystemError:
+            //        if (!loginRequest.isheadlogin)
+            //        {
+            //            showCaptcha = OprateLoginCaptcha();
 
-            LoginSuccessOprate(loginResult.Data.UserId, loginResult.Data.UserName, loginRequest.key, loginRequest.remember, loginRequest.account);
+            //        }
+            //        result.data = new { result = false, errorcode = 10, showcaptcha = showCaptcha };
+            //        return result;
+
+            //    case UserLoginReturnEnum.UnActivate:
+            //        LoginSuccessOprate(loginResult.Data.UserId, loginResult.Data.UserName, loginRequest.key, loginRequest.remember, loginRequest.account);
+            //        result.data = new { result = false, errorcode = 11, userid = loginResult.Data.UserId };
+            //        return result;
+            //    case UserLoginReturnEnum.UnFound:
+            //        showCaptcha = OprateLoginCaptcha();
+            //        result.data = new { result = false, errorcode = 12, showcaptcha = showCaptcha };
+            //        return result;
+            //}
+
+            //LoginSuccessOprate(loginResult.Data.UserId, loginResult.Data.UserName, loginRequest.key, loginRequest.remember, loginRequest.account);
             //播种Cookie种子
-            var seed = new CookiesPlant().GetSeed();
-            SowCookie("SEED", seed, false, DateTime.MaxValue);
+            //var seed = new CookiesPlant().GetSeed();
+            //SowCookie("SEED", seed, false, DateTime.MaxValue);
 
             result.data = new { result = true };
             return result;

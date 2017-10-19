@@ -141,6 +141,8 @@
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
+    <Compile Include="Models\API\Login\LoginRequest.cs" />
+    <Compile Include="Models\API\Response.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -160,7 +162,20 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
-    <Folder Include="Models\" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\David.DataService\David.DataService.csproj">
+      <Project>{268e6389-13cd-4279-b233-916ec0e757c1}</Project>
+      <Name>David.DataService</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\David.Framework.Core\David.Framework.Core.csproj">
+      <Project>{10d6d3de-51d5-43a2-a45b-15d0746d01f6}</Project>
+      <Name>David.Framework.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\David.Framework.Web\David.Framework.Web.csproj">
+      <Project>{55f62e4f-62f0-4060-8d8b-e9de71c393c5}</Project>
+      <Name>David.Framework.Web</Name>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
